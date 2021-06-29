@@ -170,18 +170,64 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
     signature.Y = coreUtils.ctx.ECP.fromBytes(signature.Y);
     signature.W = base64url.toBuffer(signature.W);
     signature.W = coreUtils.ctx.ECP.fromBytes(signature.W);
+    for (var i=0; i<4; i++) { /* Sの情報のパース */
+        signature["S"+String(i+1)] = base64url.toBuffer(signature["S"+String(i+1)]);
+        signature["S"+String(i+1)] = coreUtils.ctx.ECP.fromBytes(signature["S"+String(i+1)]);
+    }
+    for (var j=0; j<1; j++) { /* Pの情報のパース */
+        signature["P"+String(j+1)] = base64url.toBuffer(signature["P"+String(j+1)]);
+        signature["P"+String(j+1)] = coreUtils.ctx.ECP2.fromBytes(signature["P"+String(j+1)]);
+    }
 
     /* ----------署名検証開始---------- */
     // e(W, A0) =? e(Y, h0)
-    var eWA0 = coreUtils.ctx.PAIR.initmp();
+    // var eWA0 = coreUtils.ctx.PAIR.initmp();
+    var eWA0 = new coreUtils.ctx.FP12();
     eWA0 = coreUtils.ctx.PAIR.ate(apk.A0, signature.W);
     eWA0 = coreUtils.ctx.PAIR.fexp(eWA0);
-    var eYh0 = coreUtils.ctx.PAIR.initmp();
+    // var eYh0 = coreUtils.ctx.PAIR.initmp();
+    var eYh0 = new coreUtils.ctx.FP12();
     eYh0 = coreUtils.ctx.PAIR.ate(tpk.h0, signature.Y);
     eYh0 = coreUtils.ctx.PAIR.fexp(eYh0);
     console.log('e(W, A0) =? e(Y, h0):',eWA0.equals(eYh0)); /* 検証成功！ */
+    if (!eWA0.equals(eYh0)) {
+        return false;
+    }
 
-    return eWA0.equals(eYh0);
+    // \prod i=1~l e(Si, (Aj+Bj^ui)^Mij) ?= e(Y,h1)e(Cg^μ, P1) (j=1), e(Cg^μ, Pj) (j≠1)
+    var msp = [[0], [1], [1], [0]];
+    for (var j=1; j<1+1; j++) { // TODO:mspの値によって変更
+        // var multi = coreUtils.ctx.PAIR.initmp(); //\prod i=1~l e(Si, (Aj+Bj^ui)^Mij)
+        var multi = new coreUtils.ctx.FP12(); //\prod i=1~l e(Si, (Aj+Bj^ui)^Mij)
+        for (var i=1; i<4+1; i++) { // TODO:mspの値によって変更
+            var eSiAjBj = new coreUtils.ctx.FP12();
+            var AjBj; // (Aj + Bj^ui)^Mij
+            var ui = new coreUtils.ctx.BIG(i+1);
+            var Mij = new coreUtils.ctx.BIG(msp[i-1][j-1]);
+            AjBj = coreUtils.ctx.PAIR.G2mul(apk["B"+String(j+1)], ui); 
+            AjBj.add(apk["A"+String(j)]);
+            AjBj = coreUtils.ctx.PAIR.G2mul(AjBj, Mij);
+            eSiAjBj = coreUtils.ctx.PAIR.ate(AjBj, signature["S"+String(i)]);
+            eSiAjBj = coreUtils.ctx.PAIR.fexp(eSiAjBj); // e(Si, (Aj+Bj^ui)^Mij)
+            multi.mul(eSiAjBj); // \prod
+        }
+
+        // e(C+g^μ, Pj)
+        var mu; // 512ハッシュからBIGの乱数値を生成する
+        var eCgPj = new coreUtils.ctx.FP12();
+        var Cg = coreUtils.ctx.G1mul(tpk["g"], mu);
+        Cg.add(apk["C"]);
+        eCgPj = coreUtils.ctx.PAIR.ate(signature["P"+String(j)], Cg);
+        eCgPj = coreUtils.ctx.fexp(eCgPj);
+
+        if (j == 1) {
+
+        } else {
+            // NOT IMPLEMENTED!
+        }
+    }
+
+    return true;
 };
 
 exports.createPolicy = function(attributes) {
