@@ -3,6 +3,7 @@ const ctx = new CTX('BN254');
 const utils = require('../utils');
 const base64url = require('base64url');
 const cbor = require('./cbor');
+const crypto = require('crypto');
 
 /**
  * ランダムなG1の要素を返す
@@ -61,6 +62,12 @@ exports.initRng = function(ctx) {
     for (var i=0; i<100; i++) RAW[i] = i;
     rng.seed(100, RAW);
     return rng;
+}
+
+exports.createHash = function(msg) {
+    var digest = crypto.createHash('sha512').update(Buffer.from(msg)).digest();
+    var data = ctx.BIG.fromBytes(digest);
+    return data;
 }
 
 /**

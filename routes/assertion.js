@@ -156,6 +156,7 @@ router.post('/result',async function(req,res) {
     // TODO:署名検証機能
     /* 署名検証 */
     var signData = utils.concatenation(authenticatorData.get(2), clientDataHash);
+    signData = utils.concatenation(signData, Buffer.from("A"));
     // 公開鍵の取得(DB->apk, file->tpk)
     var apk = base64url.toBuffer(assertionExpectations.apk);
     apk = cbor.decodeCBOR(apk);
@@ -169,12 +170,6 @@ router.post('/result',async function(req,res) {
         console.log('署名検証に失敗しました');
         complete = false;
     }
-
-    // if (Buffer.compare(Buffer.from(signData), base64url.toBuffer(assertion.response.signature))==0) {
-    //     console.log(username, ':signDataが一致しました');
-    // } else {
-    //     console.log(username, ':signDataが一致しません');
-    // }
 
     if(complete) {
         var filepath = './public/DB/' + username + '.json';

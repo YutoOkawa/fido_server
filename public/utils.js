@@ -163,6 +163,9 @@ exports.parsePublicKey = function(publicKey) {
 };
 
 exports.validationSignature = function(tpk,apk,sig,message,policy) {
+    var r = new coreUtils.ctx.BIG(0);
+    r.rcopy(coreUtils.ctx.ROM_CURVE.CURVE_Order);
+
     // 署名情報のパース
     var signature = base64url.toBuffer(sig);
     signature = cbor.decodeCBOR(signature);
@@ -195,35 +198,41 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
     }
 
     // \prod i=1~l e(Si, (Aj+Bj^ui)^Mij) ?= e(Y,h1)e(Cg^μ, P1) (j=1), e(Cg^μ, Pj) (j≠1)
-    var msp = [[0], [1], [1], [0]];
+    var msp = [[0], [1], [0], [1]];
     for (var j=1; j<1+1; j++) { // TODO:mspの値によって変更
-        // var multi = coreUtils.ctx.PAIR.initmp(); //\prod i=1~l e(Si, (Aj+Bj^ui)^Mij)
-        var multi = new coreUtils.ctx.FP12(); //\prod i=1~l e(Si, (Aj+Bj^ui)^Mij)
+        var multi;
         for (var i=1; i<4+1; i++) { // TODO:mspの値によって変更
-            var eSiAjBj = new coreUtils.ctx.FP12();
-            var AjBj; // (Aj + Bj^ui)^Mij
             var ui = new coreUtils.ctx.BIG(i+1);
             var Mij = new coreUtils.ctx.BIG(msp[i-1][j-1]);
-            AjBj = coreUtils.ctx.PAIR.G2mul(apk["B"+String(j+1)], ui); 
+            var AjBj = coreUtils.ctx.PAIR.G2mul(apk["B"+String(j)], ui);
             AjBj.add(apk["A"+String(j)]);
             AjBj = coreUtils.ctx.PAIR.G2mul(AjBj, Mij);
-            eSiAjBj = coreUtils.ctx.PAIR.ate(AjBj, signature["S"+String(i)]);
-            eSiAjBj = coreUtils.ctx.PAIR.fexp(eSiAjBj); // e(Si, (Aj+Bj^ui)^Mij)
-            multi.mul(eSiAjBj); // \prod
+            var eSiAjBj = coreUtils.ctx.PAIR.ate(AjBj, signature["S"+String(i)]);
+            if (i==1) {
+                multi = eSiAjBj;
+            } else {
+                multi.mul(eSiAjBj);
+            }
         }
+        multi = coreUtils.ctx.PAIR.fexp(multi);
 
         // e(C+g^μ, Pj)
-        var mu; // 512ハッシュからBIGの乱数値を生成する
-        var eCgPj = new coreUtils.ctx.FP12();
-        var Cg = coreUtils.ctx.G1mul(tpk["g"], mu);
+        var mu = coreUtils.createHash(message);
+        mu.mod(r);
+        var Cg = coreUtils.ctx.PAIR.G1mul(tpk["g"], mu);
         Cg.add(apk["C"]);
-        eCgPj = coreUtils.ctx.PAIR.ate(signature["P"+String(j)], Cg);
-        eCgPj = coreUtils.ctx.fexp(eCgPj);
-
+        var eCgPj = coreUtils.ctx.PAIR.ate(signature["P"+String(j)], Cg);
         if (j == 1) {
-
+            var eYh1 = coreUtils.ctx.PAIR.ate(tpk["h1"], signature["Y"]);
+            eCgPj.mul(eYh1);
         } else {
             // NOT IMPLEMENTED!
+        }
+        eCgPj = coreUtils.ctx.PAIR.fexp(eCgPj);
+
+        console.log("\prof i=1~l e(Si, (AjBj^ui)^Mij) =? e(Y, h1)e(Cg^μ), P1)", multi.equals(eCgPj));
+        if (!multi.equals(eCgPj)) {
+            return false;
         }
     }
 
