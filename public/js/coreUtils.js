@@ -47,7 +47,7 @@ exports.setOpt = function(obj, prop, val) {
 exports.outputBytes = function(G) {
     var W = [];
     G.toBytes(W, true);
-    console.log(W);
+    // console.log(W);
 }
 
 /**

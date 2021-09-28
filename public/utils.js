@@ -7,7 +7,7 @@ const coreUtils = require('./js/coreUtils');
 exports.writeKeyFile = function(filename,data) {
     try {
         fs.writeFileSync(filename,data,{flag:'w'});
-        console.log(filename+",writeEnd");
+        // console.log(filename+",writeEnd");
     } catch(e) {
         console.log(e);
     }
@@ -16,7 +16,7 @@ exports.writeKeyFile = function(filename,data) {
 exports.readKeyFile = function(filename) {
     try {
         var data = fs.readFileSync(filename,'utf-8');
-        console.log(filename+',readEnd');
+        // console.log(filename+',readEnd');
         return data
     } catch(e) {
         console.log(e);
@@ -192,8 +192,9 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
     var eYh0 = new coreUtils.ctx.FP12();
     eYh0 = coreUtils.ctx.PAIR.ate(tpk.h0, signature.Y);
     eYh0 = coreUtils.ctx.PAIR.fexp(eYh0);
-    console.log('e(W, A0) =? e(Y, h0):',eWA0.equals(eYh0)); /* 検証成功！ */
+    // console.log('e(W, A0) =? e(Y, h0):',eWA0.equals(eYh0)); /* 検証成功！ */
     if (!eWA0.equals(eYh0)) {
+        console.log('e(W, A0) =? e(Y, h0):',eWA0.equals(eYh0));
         return false;
     }
 
@@ -230,8 +231,9 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
         }
         eCgPj = coreUtils.ctx.PAIR.fexp(eCgPj);
 
-        console.log("\prof i=1~l e(Si, (AjBj^ui)^Mij) =? e(Y, h1)e(Cg^μ), P1)", multi.equals(eCgPj));
+        // console.log("\prof i=1~l e(Si, (AjBj^ui)^Mij) =? e(Y, h1)e(Cg^μ), P1)", multi.equals(eCgPj));
         if (!multi.equals(eCgPj)) {
+            console.log("\prof i=1~l e(Si, (AjBj^ui)^Mij) =? e(Y, h1)e(Cg^μ), P1)", multi.equals(eCgPj));
             return false;
         }
     }

@@ -80,7 +80,7 @@ router.post('/result',async function(req,res) {
             policy: database[username].policy,
             apk: database[username].attestation[0].apk
         };
-        console.log('認証を開始します.');
+        // console.log('認証を開始します.');
     } else {
         console.log('error');
         complete = false;
@@ -94,7 +94,7 @@ router.post('/result',async function(req,res) {
 
     /* challengeの検証 */
     if (assertionExpectations.challenge == clientDataJSON.challenge) {
-        console.log('challengeの検証成功!');
+        // console.log('challengeの検証成功!');
     } else {
         console.log('challengeの検証失敗...');
         complete = false;
@@ -123,7 +123,7 @@ router.post('/result',async function(req,res) {
     /* 各種パラメータの検証 */
     // originの検証
     if (assertionExpectations.origin == clientDataJSON.origin) {
-        console.log('originが一致しました.');
+        // console.log('originが一致しました.');
     } else {
         console.log('originが一致しません.');
         complete = false;
@@ -135,7 +135,7 @@ router.post('/result',async function(req,res) {
     var rpid = sha256.digest(assertionList.rpid);
     var client_rpid = Buffer.from(assertionList.rpIdHash);
     if (Buffer.compare(rpid,client_rpid) == 0) {
-        console.log(username+':rpIdのHashが一致しました.');
+        // console.log(username+':rpIdのHashが一致しました.');
     } else {
         console.log(username+':rpIdのHashが一致しません.');
         complete = false;
@@ -144,7 +144,7 @@ router.post('/result',async function(req,res) {
 
     // typeの検証
     if (clientDataJSON.type == 'webauthn.get') {
-        console.log('typeは正しい値になっています.');
+        // console.log('typeは正しい値になっています.');
     } else {
         console.log('typeが予期される値ではありませんでした.');
         complete = false;
@@ -165,7 +165,7 @@ router.post('/result',async function(req,res) {
 
     var signCheck = utils.validationSignature(tpk, apk, assertion.response.signature, signData, "A");
     if (signCheck) {
-        console.log('署名検証に成功しました.');
+        // console.log('署名検証に成功しました.');
     } else {
         console.log('署名検証に失敗しました');
         complete = false;

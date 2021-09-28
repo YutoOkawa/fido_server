@@ -16,7 +16,7 @@ router.post('/options',async function(req,res) {
         rp: {},
         user: {},
     };
-    console.log(req.body);
+    // console.log(req.body);
     let username = req.body.username;
     let attributes = req.body.attributes;
     var filepath = './public/DB/' + username + '.json';
@@ -106,7 +106,7 @@ router.post('/result',async function(req,res) {
             origin: utils.config.FIDO_ORIGIN,
             rpid: utils.config.FIDO_RPID
         };
-        console.log(username+':登録を開始します.');
+        // console.log(username+':登録を開始します.');
     } else {
         console.log('error');
         complete = false;
@@ -114,7 +114,7 @@ router.post('/result',async function(req,res) {
 
     /* challengeの検証 */
     if (attestationExpectations.challenge == clientDataJSON.challenge) {
-        console.log(username+':challengeの検証成功!');
+        // console.log(username+':challengeの検証成功!');
     } else {
         console.log(username+':challengeの検証失敗...');
         complete = false;
@@ -153,7 +153,7 @@ router.post('/result',async function(req,res) {
     /* 各種パラメータの検証 */
     // originの検証
     if (attestationExpectations.origin == clientDataJSON.origin) {
-        console.log(username+':originが一致しました.');
+        // console.log(username+':originが一致しました.');
     } else {
         console.log(username+':originが一致しません.');
         complete = false;
@@ -165,7 +165,7 @@ router.post('/result',async function(req,res) {
     var rpid = sha256.digest();
     var client_rpid = Buffer.from(attestationObjectList.rpIdHash);
     if (Buffer.compare(rpid,client_rpid) == 0) {
-        console.log(username+':rpIdのHashが一致しました.');
+        // console.log(username+':rpIdのHashが一致しました.');
     } else {
         console.log(username+':rpIdのHashが一致しません.');
         complete = false;
@@ -173,7 +173,7 @@ router.post('/result',async function(req,res) {
 
     // typeの検証
     if (clientDataJSON.type == 'webauthn.create') {
-        console.log(username+':typeは正しい値になっています.');
+        // console.log(username+':typeは正しい値になっています.');
     } else {
         console.log(username+':typeが予期される値ではありませんでした.');
         complete = false;
