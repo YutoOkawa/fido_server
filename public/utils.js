@@ -4,6 +4,25 @@ const fs = require('fs');
 const crypto = require('crypto');
 const cbor = require('./js/cbor');
 const coreUtils = require('./js/coreUtils');
+
+class AttrNode {
+    constructor(value) {
+        this.right = null;
+        this.left = null;
+        this.attribute = value;
+    }
+
+    printNode() {
+        console.log("Attribute:", this.attribute);
+        if (this.right != null) {
+            this.right.printNode();
+        }
+        if (this.left != null) {
+            this.left.printNode();
+        }
+    }
+};
+
 exports.writeKeyFile = function(filename,data) {
     try {
         fs.writeFileSync(filename,data,{flag:'w'});
@@ -163,8 +182,10 @@ exports.parsePublicKey = function(publicKey) {
 };
 
 exports.validationSignature = function(tpk,apk,sig,message,policy) {
+    var attributes = ["USER", "PARENTS", "GUARDIANSHIP", "A"];
     var r = new coreUtils.ctx.BIG(0);
     r.rcopy(coreUtils.ctx.ROM_CURVE.CURVE_Order);
+    var msp = getMSP(policy, attributes);
 
     // 署名情報のパース
     var signature = base64url.toBuffer(sig);
@@ -173,11 +194,11 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
     signature.Y = coreUtils.ctx.ECP.fromBytes(signature.Y);
     signature.W = base64url.toBuffer(signature.W);
     signature.W = coreUtils.ctx.ECP.fromBytes(signature.W);
-    for (var i=0; i<4; i++) { /* Sの情報のパース */
+    for (var i=0; i<msp.length; i++) { /* Sの情報のパース */
         signature["S"+String(i+1)] = base64url.toBuffer(signature["S"+String(i+1)]);
         signature["S"+String(i+1)] = coreUtils.ctx.ECP.fromBytes(signature["S"+String(i+1)]);
     }
-    for (var j=0; j<1; j++) { /* Pの情報のパース */
+    for (var j=0; j<msp[0].length; j++) { /* Pの情報のパース */
         signature["P"+String(j+1)] = base64url.toBuffer(signature["P"+String(j+1)]);
         signature["P"+String(j+1)] = coreUtils.ctx.ECP2.fromBytes(signature["P"+String(j+1)]);
     }
@@ -199,10 +220,9 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
     }
 
     // \prod i=1~l e(Si, (Aj+Bj^ui)^Mij) ?= e(Y,h1)e(Cg^μ, P1) (j=1), e(Cg^μ, Pj) (j≠1)
-    var msp = [[0], [1], [0], [1]];
-    for (var j=1; j<1+1; j++) { // TODO:mspの値によって変更
+    for (var j=1; j<msp[0].length+1; j++) {
         var multi;
-        for (var i=1; i<4+1; i++) { // TODO:mspの値によって変更
+        for (var i=1; i<msp.length+1; i++) {
             var ui = new coreUtils.ctx.BIG(i+1);
             var Mij = new coreUtils.ctx.BIG(msp[i-1][j-1]);
             var AjBj = coreUtils.ctx.PAIR.G2mul(apk["B"+String(j)], ui);
@@ -240,6 +260,128 @@ exports.validationSignature = function(tpk,apk,sig,message,policy) {
 
     return true;
 };
+
+/**
+ * @brief monotone span programを実行する
+ * @param {String} policy - 認証ポリシー 
+ * @param {Array(String)} attributes - 属性集合
+ * @returns msp - monotone span programの配列
+ */
+function getMSP(policy, attributes) {
+    var u = {};
+    counter = 0;
+
+    attributes.forEach(function(attribute) {
+        u[counter] = attribute;
+        u[attribute] = counter;
+        counter++;
+    });
+
+    policy = remove_space(policy);
+    var root = new AttrNode(policy);
+
+    if (parse_expression(root) < 0) {
+        console.error("error");
+        return ;
+    }
+
+    matrix = [];
+    for (var i=0; i<attributes.length; i++) {
+        matrix.push([]);
+    }
+
+    counter = [1];
+    function recursivefill(node, vector) {
+        if (node.attribute == "|") {
+            recursivefill(node.left, vector);
+            recursivefill(node.right, vector);
+        } else if (node.attribute == "&") {
+            /* TODO: AND実装 */
+        } else {
+            var attribute = node.attribute;
+            matrix[u[attribute]] = vector;
+        }
+    }
+    recursivefill(root, [1]);
+
+    matrix.forEach(function(i) {
+        while(i.length < counter[0]) {
+            i.push(0);
+        }
+    });
+    return matrix;
+};
+
+/**
+ * @param 入力された計算式の空白を取り除く
+ * @param {String} exp 計算式
+ * @returns exp - 空白を取り除いた論理式を取得する
+ */
+function remove_space(exp) {
+    exp = exp.split(' ');
+    exp = exp.join('');
+    return exp;
+}
+
+/**
+ * @brief 一番右端にある演算子の位置を取得する
+ * @param {String} exp 計算式
+ * @returns index - 演算子のindex
+ */
+function get_pos_operator(exp) {
+    if (exp.lastIndexOf('|') > 0) {
+        return exp.lastIndexOf('|');
+    } else if (exp.lastIndexOf('&') > 0) {
+        return exp.lastIndexOf('&');
+    } else {
+        return -1;
+    }
+}
+
+/**
+ * @brief 計算式のパースを行う
+ * @param {AttrNode} node 
+ * @returns  成功ステータス
+ */
+function parse_expression(node) {
+    var pos_operator = get_pos_operator(node.attribute);
+    if (pos_operator == -1) {
+        node.left = null;
+        node.right = null;
+        return 0;
+    }
+
+    var len = node.attribute.length;
+
+    if (pos_operator == 0 || (len-1) == pos_operator) {
+        return -1;
+    }
+
+    node.left = new AttrNode();
+    node.right = new AttrNode();
+
+    /**
+     * 左側の式のパース
+     */
+    node.left.attribute = node.attribute.substring(0, pos_operator);
+    if (parse_expression(node.left) < 0) {
+        return -1;
+    }
+
+    /**
+     * 右側の式のパース
+     */
+    node.right.attribute = node.attribute.substring(pos_operator+1, len);
+    if (parse_expression(node.right) < 0) {
+        return -1;
+    }
+
+    /**
+     * 演算子の格納
+     */
+    node.attribute = node.attribute.substring(pos_operator, pos_operator+1);
+    return 1;
+}
 
 exports.createPolicy = function(attributes) {
     var attr_list = attributes.split(',');

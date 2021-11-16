@@ -100,15 +100,6 @@ router.post('/result',async function(req,res) {
         complete = false;
     }
 
-    // // authenticatorDataのパース
-    // var authenticatorData = base64url.toBuffer(assertion.response.authenticatorData);
-    // authenticatorData = utils.toArrayBuffer(authenticatorData,"authenticatorData");
-    // authenticatorData = utils.parse(authenticatorData,"assertion");
-    // if(!authenticatorData) {
-    //     console.error('attestationObjectのパース失敗...');
-    //     complete = false;
-    // }
-
     /* authenticatorDataのデコード */
     var authenticatorData = base64url.toBuffer(assertion.response.authenticatorData);
     authenticatorData = cbor.decodeCBOR(authenticatorData);
@@ -156,14 +147,14 @@ router.post('/result',async function(req,res) {
     // TODO:署名検証機能
     /* 署名検証 */
     var signData = utils.concatenation(authenticatorData.get(2), clientDataHash);
-    signData = utils.concatenation(signData, Buffer.from("A"));
+    signData = utils.concatenation(signData, Buffer.from(assertionExpectations.policy));
     // 公開鍵の取得(DB->apk, file->tpk)
     var apk = base64url.toBuffer(assertionExpectations.apk);
     apk = cbor.decodeCBOR(apk);
     apk = coreUtils.BytesToKey(apk);
     var tpk = coreUtils.readKey('./public/DB/localhost.tpk');
 
-    var signCheck = utils.validationSignature(tpk, apk, assertion.response.signature, signData, "A");
+    var signCheck = utils.validationSignature(tpk, apk, assertion.response.signature, signData, assertionExpectations.policy);
     if (signCheck) {
         // console.log('署名検証に成功しました.');
     } else {
