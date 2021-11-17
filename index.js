@@ -16,9 +16,11 @@ var server = https.createServer(option, app);
 
 var attestation = require('./routes/attestation');
 var assertion = require('./routes/assertion');
+var delegated = require('./routes/delegated');
 
 app.use('/attestation', attestation);
 app.use('/assertion', assertion);
+app.use('/delegated', delegated);
 
 app.get('*', function(req,res) {
     res.send('This is a new FIDO2 Server by core libray.');
