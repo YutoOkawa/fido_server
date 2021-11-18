@@ -16,7 +16,6 @@ router.post('/options',async function(req,res) {
         rp: {},
         user: {},
     };
-    // console.log(req.body);
     let username = req.body.username;
     let attributes = req.body.attributes;
     var filepath = './public/DB/' + username + '.json';
@@ -78,8 +77,6 @@ router.post('/options',async function(req,res) {
         attribute_table: attribute_table
     };
 
-    // console.log(database[username]);
-    // console.log(registerOptions);
     console.timeEnd('/attestation/options')
     res.send(registerOptions);
 });
@@ -125,31 +122,15 @@ router.post('/result',async function(req,res) {
     attestationObject = cbor.decodeCBOR(attestationObject);
 
     /* authenticatorDataのパース */
-    /* TODO:credentialIDってWebAuthnの返り値に入ってるデータと同じなのでその処理 */
     var attestationObjectList = utils.parse(attestationObject.get(2),"attestation");
     if (!attestationObjectList) {
         console.error(username+':attestationObjectのパース失敗...');
         complete = false;
     }
 
-    /* TODO:attestationの検証 */
+    /* attestationの検証 */
     var fmt = attestationObject.get(1);
-    // if (fmt == 'packed') {
-    //     var signature = attestationObject.attStmt.sig;
-    //     var signatureData = utils.concatenation(sigAuthenticatorData,sigClientDataJSON);
-    //     console.log(signatureData)
-    //     var keylist = utils.parsePublicKey(utils.bufToStr(attestationObjectList.credentialPublicKey));
-    //     var tpk = keylist.tpk;
-    //     var apk = keylist.apk;
-    //     var signCheck = await utils.validationSignature(tpk,apk,signature,base64url.encode(signatureData),utils.createPolicy(database[username].attributes));
-    //     if (signCheck) {
-    //         console.log(username+':署名検証に成功しました.送られたattestationは正しいattestationです.');
-    //     } else {
-    //         console.log(username+':署名検証に失敗しました.送られたattestationは間違ったattestationです.');
-    //         complete = false;
-    //     }
-    // }
-
+    
     /* 各種パラメータの検証 */
     // originの検証
     if (attestationExpectations.origin == clientDataJSON.origin) {
@@ -180,10 +161,8 @@ router.post('/result',async function(req,res) {
     }
 
     // flagsの検証
-    // 一旦省略
 
-    if (complete) {
-        /* TODO:公開鍵の登録処理 */
+    if (complete) { /* 完了処理 */
         var credId = base64url.encode(attestationObjectList.credentialId);
         var apk = base64url.encode(attestationObjectList.credentialPublicKey);
         var counter = Buffer.from(attestationObjectList.counter).readIntBE(0,4,false);
@@ -198,7 +177,6 @@ router.post('/result',async function(req,res) {
                 database[username].attribute_table.push(database[username].attributes)
             }
         }
-        // // console.log(database[username]);
         var filepath = './public/DB/'+username+'.json';
         utils.writeKeyFile(filepath,JSON.stringify(database[username]));
         res.send({

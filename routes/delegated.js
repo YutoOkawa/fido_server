@@ -17,36 +17,26 @@ router.post('/options',async function(req,res) {
         rp: {},
         user: {},
     };
-    // console.log(req.body);
+    
     let username = req.body.username;
     let delegatedUsername = req.body.delegatedUsername;
     let policy = req.body.policy;
     let attributes = req.body.attributes;
     var errorMessage = "";
     var filepath = './public/DB/' + username + '.json';
-    // console.log(filepath);
 
     if (fs.existsSync(filepath)) {
         database[username] = utils.readKeyFile(filepath);
         database[username] = JSON.parse(database[username]);
         if (database[username].attribute_table==undefined) {
             var attribute_table = []
-        } else {
-            var attribute_table = database[username].attribute_table; /* delegatedUsernameの属性集合に追加するため */
+        } else { /* delegatedUserの属性集合に追加する */
+            var attribute_table = database[username].attribute_table;
         }
     } else {
         database[username] = {}
         var attribute_table = []
     }
-
-    // useridの生成
-    // if (database[username].user == undefined) {
-    //     var id = crypto.randomBytes(32);
-    //     id = utils.toArrayBuffer(id, "id");
-    //     id = await base64url.encode(id);
-    // } else {
-    //     id = database[username].user.id;
-    // }
 
     // challengeの生成
     var challenge = crypto.randomBytes(utils.config.challengesize);
@@ -87,7 +77,7 @@ router.post('/options',async function(req,res) {
 
     database[username] = {
         name: username,
-        delegatedUsername: delegatedUsername,
+        delegatedUsername: delegatedUsername, /* 委任者情報の記録 */
         registered: true,
         id: database[username].id,
         attributes: attributes,
@@ -97,8 +87,6 @@ router.post('/options',async function(req,res) {
         attribute_table: attribute_table
     };
 
-    // console.log(database[username]);
-    // console.log(registerOptions);
     console.timeEnd('/delegated/options')
     res.send(registerOptions);
 });
@@ -129,7 +117,6 @@ router.post('/result',async function(req,res) {
             apk: database[username].attestation[0].apk,
             delegatedUsername: database[username].delegatedUsername
         };
-        // console.log(username+':登録を開始します.');
     } else {
         console.log('error');
         complete = false;
@@ -154,23 +141,7 @@ router.post('/result',async function(req,res) {
         complete = false;
     }
 
-    /* TODO:attestationの検証 */
     var fmt = attestationObject.get(1);
-    // if (fmt == 'packed') {
-    //     var signature = attestationObject.attStmt.sig;
-    //     var signatureData = utils.concatenation(sigAuthenticatorData,sigClientDataJSON);
-    //     console.log(signatureData)
-    //     var keylist = utils.parsePublicKey(utils.bufToStr(attestationObjectList.credentialPublicKey));
-    //     var tpk = keylist.tpk;
-    //     var apk = keylist.apk;
-    //     var signCheck = await utils.validationSignature(tpk,apk,signature,base64url.encode(signatureData),utils.createPolicy(database[username].attributes));
-    //     if (signCheck) {
-    //         console.log(username+':署名検証に成功しました.送られたattestationは正しいattestationです.');
-    //     } else {
-    //         console.log(username+':署名検証に失敗しました.送られたattestationは間違ったattestationです.');
-    //         complete = false;
-    //     }
-    // }
 
     /* 各種パラメータの検証 */
     // originの検証
@@ -202,7 +173,6 @@ router.post('/result',async function(req,res) {
     }
 
     // flagsの検証
-    // 一旦省略
 
     // delegatedUserNameの検証
     if (attestationExpectations.delegatedUsername != delegatedUsername) {
@@ -225,16 +195,7 @@ router.post('/result',async function(req,res) {
         complete = false;
     }
 
-    if (complete) {
-        // var credId = base64url.encode(attestationObjectList.credentialId);
-        // var apk = base64url.encode(attestationObjectList.credentialPublicKey);
-        // var counter = Buffer.from(attestationObjectList.counter).readIntBE(0,4,false);
-        // database[username].attestation.push({
-        //     apk: apk,
-        //     counter: counter,
-        //     fmt: fmt,
-        //     credId: credId
-        // });
+    if (complete) { /* 完了処理 */
         if (database[username].attribute_table != undefined) {
             if (database[username].attribute_table.indexOf(database[username].attributes) == -1) {
                 database[username].attribute_table.push(database[username].attributes)

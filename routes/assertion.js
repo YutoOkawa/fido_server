@@ -34,16 +34,13 @@ router.post('/options',async function(req,res) {
     if(!delete database[username].challenge) {
         errorMessage = "DBでエラーが発生しました.";
     }
-    // console.log(database[username]);
     database[username].policy = policy;
 
     // challengeの生成
     var challenge = crypto.randomBytes(utils.config.challengesize);
     challenge = utils.toArrayBuffer(challenge,"challenge");
     challenge = base64url.encode(challenge);
-    // console.log(challenge);
     utils.setOpt(database[username],"challenge",challenge);
-    // console.log(database[username]);
 
     // allowCredentialsの設定
     var allowCredentials = [];
@@ -61,7 +58,6 @@ router.post('/options',async function(req,res) {
     utils.setOpt(authnOptions,"allowCredentials",allowCredentials);
     utils.setOpt(authnOptions,"errorMessage",errorMessage);
     utils.setOpt(authnOptions,"status","ok");
-    // console.log(authnOptions);
     res.send(authnOptions);
     console.timeEnd('/assertion/options')
 });
@@ -80,7 +76,6 @@ router.post('/result',async function(req,res) {
             policy: database[username].policy,
             apk: database[username].attestation[0].apk
         };
-        // console.log('認証を開始します.');
     } else {
         console.log('error');
         complete = false;
@@ -142,9 +137,7 @@ router.post('/result',async function(req,res) {
     }
 
     // flagsの検証
-    // 一旦省略
 
-    // TODO:署名検証機能
     /* 署名検証 */
     var signData = utils.concatenation(authenticatorData.get(2), clientDataHash);
     signData = utils.concatenation(signData, Buffer.from(assertionExpectations.policy));
