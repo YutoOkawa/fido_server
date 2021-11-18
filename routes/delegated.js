@@ -183,7 +183,6 @@ router.post('/result',async function(req,res) {
     // 署名検証
     var signData = utils.concatenation(attestationObject.get(2).slice(0,37), utils.generateClientDataHash(clientDataJSON));
     signData = utils.concatenation(signData, Buffer.from(attestationExpectations.policy));
-    console.log(signData);
     var apk = base64url.toBuffer(attestationExpectations.apk);
     apk = cbor.decodeCBOR(apk);
     apk = coreUtils.BytesToKey(apk);
