@@ -151,7 +151,7 @@ router.post('/result',async function(req,res) {
     if (signCheck) {
         // console.log('署名検証に成功しました.');
     } else {
-        console.log('署名検証に失敗しました');
+        console.log('filaed to verify signature.');
         complete = false;
     }
 
@@ -160,12 +160,12 @@ router.post('/result',async function(req,res) {
         utils.writeKeyFile(filepath,JSON.stringify(database[username]));
         res.send({
             status: 'ok',
-            message: '認証完了しました.'
+            message: 'authentication complete.'
         });
     } else {
         res.send({
             status: 'failed',
-            message: '認証失敗しました.'
+            message: 'authentication failed..'
         });
     }
     console.timeEnd('/assertion/result');

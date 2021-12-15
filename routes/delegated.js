@@ -190,7 +190,7 @@ router.post('/result',async function(req,res) {
 
     var signCheck = utils.validationSignature(tpk, apk, attestation.signature, signData, attestationExpectations.policy);
     if (!signCheck) {
-        console.log('署名検証に失敗しました。');
+        console.log('failed to verify signatures.');
         complete = false;
     }
 
@@ -206,12 +206,12 @@ router.post('/result',async function(req,res) {
         utils.writeKeyFile(filepath,JSON.stringify(database[username]));
         res.send({
             status: 'ok',
-            message: username+':登録完了しました.'
+            message: username+':registration complete.'
         });
     } else {
         res.send({
             status: 'failed',
-            message: username+':登録失敗しました.'
+            message: username+':registration failed.'
         });
     }
     console.timeEnd('/delegated/result');

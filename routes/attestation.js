@@ -181,12 +181,12 @@ router.post('/result',async function(req,res) {
         utils.writeKeyFile(filepath,JSON.stringify(database[username]));
         res.send({
             status: 'ok',
-            message: username+':登録完了しました.'
+            message: username+':register complete.'
         });
     } else {
         res.send({
             status: 'failed',
-            message: username+':登録失敗しました.'
+            message: username+':register failed.'
         });
     }
     console.timeEnd('/attestation/result');
